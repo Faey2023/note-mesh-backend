@@ -70,29 +70,36 @@ export const updateDocument = async (req, res) => {
   }
 };
 
-
 //single doc
 export const getDocumentById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
 
-    const doc = await Document.findById(id);
+    const doc = await Document.findById(id)
+      .populate("owner", "fullName avatar email")
+      .populate("sharedWith.user", "fullName avatar email");
+
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    const isOwner = doc.owner.equals(userId);
-    const isShared = doc.sharedWith.some((entry) => entry.user.equals(userId));
+    const isOwner = doc.owner._id.equals(userId);
+    const isShared = doc.sharedWith.some((entry) =>
+      entry.user._id.equals(userId)
+    );
 
-    if (!isOwner && !isShared)
+    if (!isOwner && !isShared) {
       return res.status(403).json({ message: "Not authorized to view" });
+    }
 
     res.status(200).json(doc);
   } catch (err) {
+    console.error("Error in getDocumentById:", err);
     res
       .status(500)
       .json({ message: "Failed to fetch document", error: err.message });
   }
 };
+
 
 //delete
 export const deleteDocument = async (req, res) => {
