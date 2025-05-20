@@ -51,14 +51,15 @@ export const updateDocument = async (req, res) => {
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
     const isOwner = doc.owner.equals(userId);
-    const isEditor = doc.sharedWith.some(
-      (entry) => entry.user.equals(userId) && entry.role === "editor"
+    const isSharedUser = doc.sharedWith.some((entry) =>
+      entry.user.equals(userId)
     );
 
-    if (!isOwner && !isEditor)
+    if (!isOwner && !isSharedUser) {
       return res.status(403).json({ message: "Not authorized to edit" });
+    }
 
-    if (title) doc.title = title;
+    if (title !== undefined) doc.title = title;
     if (content !== undefined) doc.content = content;
 
     await doc.save();
@@ -68,6 +69,7 @@ export const updateDocument = async (req, res) => {
     res.status(500).json({ message: "Update failed", error: err.message });
   }
 };
+
 
 //single doc
 export const getDocumentById = async (req, res) => {
@@ -86,10 +88,11 @@ export const getDocumentById = async (req, res) => {
 
     res.status(200).json(doc);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch document", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch document", error: err.message });
   }
 };
-
 
 //delete
 export const deleteDocument = async (req, res) => {
