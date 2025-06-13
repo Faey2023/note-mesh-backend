@@ -40,30 +40,6 @@ export const getUserDocuments = async (req, res) => {
   }
 };
 
-//get by id
-// export const getDocumentById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const userId = req.user._id;
-
-//     const doc = await Document.findOne({
-//       _id: id,
-//       $or: [
-//         { owner: userId },
-//         { sharedWith: { $elemMatch: { user: userId } } },
-//       ],
-//     });
-
-//     if (!doc) return res.status(404).json({ message: "Document not found" });
-
-//     res.status(200).json(doc);
-//   } catch (err) {
-//     res
-//       .status(500)
-//       .json({ message: "Error fetching document", error: err.message });
-//   }
-// };
-
 //edit
 export const updateDocument = async (req, res) => {
   try {
@@ -117,5 +93,42 @@ export const deleteDocument = async (req, res) => {
   } catch (err) {
     console.error("Error in deleteDocument:", err);
     res.status(500).json({ message: "Deletion failed", error: err.message });
+  }
+};
+
+//share
+export const shareDocument = async (req, res) => {
+  try {
+    const { docId, userId } = req.body;
+    const ownerId = req.user._id;
+
+    const doc = await Document.findById(docId);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    if (!doc.owner.equals(ownerId)) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to share this document" });
+    }
+
+    const alreadyShared = doc.sharedWith.some((entry) =>
+      entry.user.equals(userId)
+    );
+    if (alreadyShared) {
+      return res.status(400).json({ message: "User already has access" });
+    }
+
+    doc.sharedWith.push({ user: userId, role: "viewer" });
+
+    await doc.save();
+
+    res
+      .status(200)
+      .json({ message: "Document shared successfully", document: doc });
+  } catch (err) {
+    console.error("Error sharing document:", err);
+    res
+      .status(500)
+      .json({ message: "Failed to share document", error: err.message });
   }
 };
