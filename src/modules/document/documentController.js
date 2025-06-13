@@ -58,8 +58,9 @@ export const updateDocument = async (req, res) => {
     if (!isOwner && !isEditor)
       return res.status(403).json({ message: "Not authorized to edit" });
 
-    doc.title = title ?? doc.title;
-    doc.content = content ?? doc.content;
+    if (title) doc.title = title;
+    if (content !== undefined) doc.content = content;
+
     await doc.save();
 
     res.status(200).json(doc);
@@ -67,6 +68,28 @@ export const updateDocument = async (req, res) => {
     res.status(500).json({ message: "Update failed", error: err.message });
   }
 };
+
+//single doc
+export const getDocumentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    const isOwner = doc.owner.equals(userId);
+    const isShared = doc.sharedWith.some((entry) => entry.user.equals(userId));
+
+    if (!isOwner && !isShared)
+      return res.status(403).json({ message: "Not authorized to view" });
+
+    res.status(200).json(doc);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch document", error: err.message });
+  }
+};
+
 
 //delete
 export const deleteDocument = async (req, res) => {
