@@ -1,0 +1,112 @@
+import Document from "./documentsModel.js";
+
+export const createDocument = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const ownerId = req.user._id;
+
+    const newDoc = new Document({
+      title,
+      content,
+      owner: ownerId,
+    });
+
+    await newDoc.save();
+    res.status(201).json(newDoc);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to create document", error: err.message });
+  }
+};
+
+//get all
+export const getUserDocuments = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const docs = await Document.find({
+      $or: [
+        { owner: userId },
+        { sharedWith: { $elemMatch: { user: userId } } },
+      ],
+    });
+
+    res.status(200).json(docs);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to fetch documents", error: err.message });
+  }
+};
+
+//get by id
+export const getDocumentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const doc = await Document.findOne({
+      _id: id,
+      $or: [
+        { owner: userId },
+        { sharedWith: { $elemMatch: { user: userId } } },
+      ],
+    });
+
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    res.status(200).json(doc);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching document", error: err.message });
+  }
+};
+
+//edit
+export const updateDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    const userId = req.user._id;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    const isOwner = doc.owner.equals(userId);
+    const isEditor = doc.sharedWith.some(
+      (entry) => entry.user.equals(userId) && entry.role === "editor"
+    );
+
+    if (!isOwner && !isEditor)
+      return res.status(403).json({ message: "Not authorized to edit" });
+
+    doc.title = title ?? doc.title;
+    doc.content = content ?? doc.content;
+    await doc.save();
+
+    res.status(200).json(doc);
+  } catch (err) {
+    res.status(500).json({ message: "Update failed", error: err.message });
+  }
+};
+
+//delete
+export const deleteDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    if (!doc.owner.equals(userId))
+      return res.status(403).json({ message: "Only owner can delete" });
+
+    await doc.remove();
+    res.status(200).json({ message: "Document deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Deletion failed", error: err.message });
+  }
+};
