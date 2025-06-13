@@ -41,28 +41,28 @@ export const getUserDocuments = async (req, res) => {
 };
 
 //get by id
-export const getDocumentById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user._id;
+// export const getDocumentById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const userId = req.user._id;
 
-    const doc = await Document.findOne({
-      _id: id,
-      $or: [
-        { owner: userId },
-        { sharedWith: { $elemMatch: { user: userId } } },
-      ],
-    });
+//     const doc = await Document.findOne({
+//       _id: id,
+//       $or: [
+//         { owner: userId },
+//         { sharedWith: { $elemMatch: { user: userId } } },
+//       ],
+//     });
 
-    if (!doc) return res.status(404).json({ message: "Document not found" });
+//     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    res.status(200).json(doc);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching document", error: err.message });
-  }
-};
+//     res.status(200).json(doc);
+//   } catch (err) {
+//     res
+//       .status(500)
+//       .json({ message: "Error fetching document", error: err.message });
+//   }
+// };
 
 //edit
 export const updateDocument = async (req, res) => {
@@ -96,17 +96,26 @@ export const updateDocument = async (req, res) => {
 export const deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user?._id;
+
+    console.log("Request to delete doc:", { id, userId });
 
     const doc = await Document.findById(id);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
+    if (!doc) {
+      console.log("Document not found");
+      return res.status(404).json({ message: "Document not found" });
+    }
 
-    if (!doc.owner.equals(userId))
+    if (!doc.owner.equals(userId)) {
+      console.log("Not authorized to delete this document");
       return res.status(403).json({ message: "Only owner can delete" });
+    }
 
-    await doc.remove();
+    await doc.deleteOne();
+    console.log("Document deleted");
     res.status(200).json({ message: "Document deleted" });
   } catch (err) {
+    console.error("Error in deleteDocument:", err);
     res.status(500).json({ message: "Deletion failed", error: err.message });
   }
 };

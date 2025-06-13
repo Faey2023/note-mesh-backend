@@ -2,7 +2,7 @@ import express from "express";
 import {
   createDocument,
   getUserDocuments,
-  getDocumentById,
+  // getDocumentById,
   updateDocument,
   deleteDocument,
 } from "./documentController.js";
@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.post("/create-doc", auth, createDocument);
 router.get("/allDoc", auth, getUserDocuments);
-router.get("/:id", auth, getDocumentById);
+// router.get("/:id", auth, getDocumentById);
 router.put("/:id", auth, updateDocument);
 router.delete("/:id", auth, deleteDocument);
 
