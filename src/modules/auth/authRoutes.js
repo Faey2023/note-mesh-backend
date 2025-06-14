@@ -32,7 +32,7 @@ router.get(
   (req, res) => {
     // console.log("successful login, user:", req.user);
 
-    if (!req.user) return res.redirect("/login");
+    if (!req.user) return res.redirect(`${process.env.CLIENT_URL}/login`);
 
     // JWT token
     const token = jwt.sign(
