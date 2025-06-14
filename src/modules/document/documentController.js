@@ -100,28 +100,27 @@ export const getDocumentById = async (req, res) => {
   }
 };
 
-
 //delete
 export const deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user?._id;
 
-    console.log("Request to delete doc:", { id, userId });
+    // console.log("Request to delete doc:", { id, userId });
 
     const doc = await Document.findById(id);
     if (!doc) {
-      console.log("Document not found");
+      // console.log("Document not found");
       return res.status(404).json({ message: "Document not found" });
     }
 
     if (!doc.owner.equals(userId)) {
-      console.log("Not authorized to delete this document");
+      // console.log("Not authorized to delete this document");
       return res.status(403).json({ message: "Only owner can delete" });
     }
 
     await doc.deleteOne();
-    console.log("Document deleted");
+    // console.log("Document deleted");
     res.status(200).json({ message: "Document deleted" });
   } catch (err) {
     console.error("Error in deleteDocument:", err);
