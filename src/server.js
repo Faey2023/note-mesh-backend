@@ -7,10 +7,10 @@ import app from "./app.js";
 
 dotenv.config();
 
-// server from express
+// Create server from express app
 const server = http.createServer(app);
 
-// initiate
+// Initialize Socket.IO
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL,
@@ -18,17 +18,13 @@ const io = new Server(server, {
   },
 });
 
-// socket events
+// Socket.IO event handling
 io.on("connection", (socket) => {
-  // console.log("user connected:", socket.id);
-
   socket.on("join-room", (docId, user) => {
     socket.join(docId);
     socket.data.user = user;
     socket.data.docId = docId;
-    // console.log("joined room:", docId, user);
 
-    // active users
     const clients = Array.from(io.sockets.adapter.rooms.get(docId) || []);
     const activeUsers = clients
       .map((id) => io.sockets.sockets.get(id)?.data?.user)
@@ -41,6 +37,10 @@ io.on("connection", (socket) => {
     socket.to(docId).emit("receive-changes", content);
   });
 
+  socket.on("cursor-change", (docId, cursorData) => {
+    socket.to(docId).emit("cursor-change", cursorData);
+  });
+
   socket.on("disconnect", () => {
     const docId = socket.data.docId;
     if (!docId) return;
@@ -51,11 +51,10 @@ io.on("connection", (socket) => {
       .filter(Boolean);
 
     io.to(docId).emit("active-users", activeUsers);
-    // console.log("user disconnected:", socket.id);
   });
 });
 
-// connect db
+// Connect to database and start server
 async function main() {
   try {
     await mongoose.connect(config.mongouri);
